@@ -54,12 +54,12 @@ Finally, we instruct the kernel to either drop the packet if it is IPv4 (by retu
 
 We need to compile the program first, yielding `drop_ipv4.o` (please ensure that `libbpf` header files are installed).
 
-```
+```sh
 clang -c -O2 -target bpf drop_ipv4.c
 ```
 
 Then we load our program into the kernel.
-```
+```sh
 bpftool prog load drop_ipv4.o /sys/fs/bpf/drop_ipv4
 ```
 From now on, the program is *pinned* and known as `/sys/fs/bpf/drop_ipv4` (of course, we could've picked a different name at load time).
@@ -67,7 +67,7 @@ From now on, the program is *pinned* and known as `/sys/fs/bpf/drop_ipv4` (of co
 The program has been loaded into the kernel, but it is not attached to any interface yet.
 We can enable it on say `eth0` with
 
-```
+```sh
 bpftool net attach xdp pinned /sys/fs/bpf/drop_ipv4 dev eth0
 ```
 
@@ -81,7 +81,7 @@ What does it mean to dereference a modified context pointer?
 We need to peel off one layer and examine ebpf bytecode to answer this question.
 The easiest option is to ask `clang` to emit assembly output, which will be ebpf for `-target bpf`.
 
-```
+```sh
 clang -S -O2 -target bpf drop_ipv4.c
 ```
 
@@ -126,7 +126,7 @@ r2 = *(u32 *)(r2 + 0)
 ? We've artificially introduced a *modified context pointer*.
 Let's manually make the change in `drop_ipv4.s`, compile, and attempt to load the program.
 It fails with the following diagnostics:
-```
+```plain
 0: (b7) r0 = 1
 1: (bf) r2 = r1
 2: (07) r2 += 4
