@@ -88,17 +88,17 @@ clang -S -O2 -target bpf drop_ipv4.c
 The command produces `drop_ipv4.s` with the following content (slightly edited for readability):
 
 ```c
-	r0 = 1
-	r2 = *(u32 *)(r1 + 4)
-	r1 = *(u32 *)(r1 + 0)
-	r3 = r1
-	r3 += 14
-	if r3 > r2 goto LBB0_3
-	r1 = *(u16 *)(r1 + 12)
-	if r1 == 8 goto LBB0_3
-	r0 = 2
+    r0 = 1
+    r2 = *(u32 *)(r1 + 4)
+    r1 = *(u32 *)(r1 + 0)
+    r3 = r1
+    r3 += 14
+    if r3 > r2 goto LBB0_3
+    r1 = *(u16 *)(r1 + 12)
+    if r1 == 8 goto LBB0_3
+    r0 = 2
 LBB0_3:
-	exit
+    exit
 ```
 
 The bytecode is spelled in C-like syntax.
