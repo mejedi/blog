@@ -195,21 +195,21 @@ We can write [assembly inline](https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.h
 Interestingly, we can leave some gaps for compiler to fill in:
 
 ```c
-static __always_inline void *xdp_data(const struct xdp_md *ctx) {
-   void *data;
+static __always_inline void *xdp_data_end(const struct xdp_md *ctx) {
+   void *data_end;
 
    asm("%[res] = *(u32 *)(%[base] + %[offset])",
-       : [res]"=r"(data)
-       : [base]"r"(ctx), [offset]"i"(offsetof(struct xdp_md, data)), "m"(*ctx)
+       : [res]"=r"(data_end)
+       : [base]"r"(ctx), [offset]"i"(offsetof(struct xdp_md, data_end)), "m"(*ctx)
 
-   return data;
+   return data_end;
 }
 ```
 
 We ask compiler to pick up registers for `res` and `base`.
 So `"%[res] = *(u32 *)(%[base] + %[offset])"` turns into e.g. `"r2 = *(u32 *)(r1 + 4)"`.
-`Base` is initialised with a context pointer (`ctx`), and `res` is copied to `data`.
-It might look as if some redundant copies are happening (`ctx` to `base`, `res` to `data`).
+`Base` is initialised with a context pointer `ctx`, and `res` is copied to `data_end`.
+It might look as if some redundant copies are happening (`ctx` to `base`, `res` to `data_end`).
 In fact, compiler will eliminate copies by picking up registers strategically.
 For instance, both `ctx` and `base` will share the same register.
 
@@ -218,17 +218,17 @@ Libbpf itself employs this technique for static tail calls so that the instructi
 Inline assembly is tightly integrated with the optimiser.
 A function leveraging inline assembly inlines without issues.
 But compiler is not allowed to alter the offset or to replace the load with a different instruction sequence.
-Therefore, unlike straightforward `ctx->data`, we won't trigger `modified ctx ptr disallowed` error ever again no matter the surrounding code or optimisation settings.
+Therefore, unlike straightforward `ctx->data_end`, we won't trigger `modified ctx ptr disallowed` error ever again no matter the surrounding code or optimisation settings.
 
 ## Common subexpression elimination
 
-It is worth mentioning that compiler will eliminate redundant calls to `xdp_data()` (aka common subexpression elimination).
+It is worth mentioning that compiler will eliminate redundant calls to `xdp_data_end()` (aka common subexpression elimination).
 If the result is still lingering in a register somewhere, there's no need to recompute it.
 It is quite handy when logic is split into smaler inlined functions.
-There's no need to cache `data` pointer explicitly.
-We can simply pass  `ctx` around and obtain  `data` pointer when needed without any performance impact.
+There's no need to cache `data_end` pointer explicitly.
+We can simply pass  `ctx` around and obtain  `data_end` pointer when needed without any performance impact.
 
-It is important though that  `data` pointer is not cached across calls that potentially mutate `ctx` such as `bpf_xdp_adjust_head()`.
+It is important though that  `data_end` pointer is not cached across calls that potentially mutate `ctx` such as `bpf_xdp_adjust_tail()`.
 Luckily, we can declare that [result depends on the memory contents](https://stackoverflow.com/questions/56432259/how-can-i-indicate-that-the-memory-pointed-to-by-an-inline-asm-argument-may-be).
 This is why we have a dummy memory input `"m"(*ctx)`.
 
@@ -238,6 +238,6 @@ Today we descended down to ebpf bytecode level to understand `dereference of mod
 The troublesome instruction sequence is ocasionally introduced by optimising compiler in complex ebpf programs.
 
 We developed a robust workaround by leveraging inline assembly, a lesser known compiler feature.
-We explored potential performance implications and concluded that there are none compared to  straightforward `ctx->data`.
+We explored potential performance implications and concluded that there are none compared to  straightforward `ctx->data_end`.
 
 Stay tuned for more ebpf content!
