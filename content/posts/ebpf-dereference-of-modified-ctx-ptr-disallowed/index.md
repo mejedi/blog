@@ -200,7 +200,7 @@ static __always_inline void *xdp_data_end(const struct xdp_md *ctx) {
 
    asm("%[res] = *(u32 *)(%[base] + %[offset])",
        : [res]"=r"(data_end)
-       : [base]"r"(ctx), [offset]"i"(offsetof(struct xdp_md, data_end)), "m"(*ctx)
+       : [base]"r"(ctx), [offset]"i"(offsetof(struct xdp_md, data_end)), "m"(*ctx));
 
    return data_end;
 }
