@@ -1,8 +1,6 @@
 +++
 title = 'Ebpf: Dereference of Modified Ctx Ptr Disallowed'
 date = 2023-12-17T21:41:12+01:00
-draft = false
-toc = true
 tags = ['ebpf', 'compilers']
 +++
 
@@ -147,10 +145,10 @@ Presumably, the kernel deliberately [rejects](https://elixir.bootlin.com/linux/v
 
 So far we've descended to bytecode level and understood the precise nature of the `modified ctx ptr disallowed` error.
 We triggered this error on purpose by editing bytecode.
-Unfortunately, compiler could ocasionally generate similar instruction sequences for a perfectly valid program. It happens more often when a program gets complex.
+Unfortunately, compiler could occasionally generate similar instruction sequences for a perfectly valid program. It happens more often when a program gets complex.
 
 It is yet unclear what causes a compiler to emit such code and whether we can prevent it from happening.
-Why does a compiler beleive that replacing
+Why does a compiler believe that replacing
 ```c
 r2 = *(u32 *)(r1 + 4)
 ```
@@ -164,8 +162,8 @@ could be beneficial?
 
 It typically happens when a memory load is the last expression involving a context pointer, hence the first copy `r2 = r1` becomes unnecessary.
 Still, even with the copy eliminated, it is 2 instructions instead of 1.
-An important thing to keep in mind is that fewer instructions is not necesserily better.
-Modern CPUs have complex execution pipelines and sometimes extra computations could be taken in for free if the full bandwidth is underutilised.
+An important thing to keep in mind is that fewer instructions is not necessarily better.
+Modern CPUs have complex execution pipelines and sometimes extra computations could be taken in for free if the full bandwidth is underutilized.
 Further, memory loads with zero offset (`r2 = *(u32 *)(r2 + 0)`) typically have lower latency, hence using an already *offset* pointer is beneficial.
 Compiler makes reading a context field a tiny notch faster by producing a modified pointer many instructions beforehand for free.
 
@@ -174,22 +172,22 @@ It is unclear what kind of a model could it use for a *virtual* target, such as 
 My educated guess is that there's still some model in use, intentional or not.
 
 `Ebpf` target leverages much of the compiler framework built for native targets.
-It inherits many powerful optimisiation passes, some of them with a potential to produce code that fails to validate.
+It inherits many powerful optimization passes, some of them with a potential to produce code that fails to validate.
 Compilers will improve eventually. But as of today, we have to come up with a workaround.
 
 How can we ensure that a problematic instruction sequence is not generated?
-The challenge is that compiler doesn't optimise a line at a time, it considers whole function bodies.
+The challenge is that compiler doesn't optimize a line at a time, it considers whole function bodies.
 Even if we find a code shape that doesn't trigger the issue today, it might resurface again due to unrelated code changes or compiler update.
 It doesn't look good.
 We need something more robust.
 
 In this particular case, compiler is too smart for its own good.
-It realises that reading a structure field involves address calculation and a memory load.
+It realizes that reading a structure field involves address calculation and a memory load.
 A single `load` instruction can handle both, or it could be 2 separate instructions.
 We need a primitive for reading from context that compiler can't decompose into sub-ops and therefore won't generate 2 separate instructions.
 A black box.
 
-## Inline assembly to the resque
+## Inline assembly to the rescue
 
 We can write [assembly inline](https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html) in C code, e.g. `asm("r1 = 42");`.
 Interestingly, we can leave some gaps for compiler to fill in:
@@ -208,23 +206,23 @@ static __always_inline void *xdp_data_end(const struct xdp_md *ctx) {
 
 We ask compiler to pick up registers for `res` and `base`.
 So `"%[res] = *(u32 *)(%[base] + %[offset])"` turns into e.g. `"r2 = *(u32 *)(r1 + 4)"`.
-`Base` is initialised with a context pointer `ctx`, and `res` is copied to `data_end`.
+`Base` is initialized with a context pointer `ctx`, and `res` is copied to `data_end`.
 It might look as if some redundant copies are happening (`ctx` to `base`, `res` to `data_end`).
 In fact, compiler will eliminate copies by picking up registers strategically.
 For instance, both `ctx` and `base` will share the same register.
 
 This way, we have *total* control over instructions used for loading context fields.
-Libbpf itself employs this technique for static tail calls so that the instruction sequence is exactly as expected and can be [optimised](https://elixir.bootlin.com/linux/v6.5-rc5/source/tools/lib/bpf/bpf_helpers.h#L141) by ebpf JIT compiler.
-Inline assembly is tightly integrated with the optimiser.
+Libbpf itself employs this technique for static tail calls so that the instruction sequence is exactly as expected and can be [optimized](https://elixir.bootlin.com/linux/v6.5-rc5/source/tools/lib/bpf/bpf_helpers.h#L141) by ebpf JIT compiler.
+Inline assembly is tightly integrated with the optimizer.
 A function leveraging inline assembly inlines without issues.
 But compiler is not allowed to alter the offset or to replace the load with a different instruction sequence.
-Therefore, unlike straightforward `ctx->data_end`, we won't trigger `modified ctx ptr disallowed` error ever again no matter the surrounding code or optimisation settings.
+Therefore, unlike straightforward `ctx->data_end`, we won't trigger `modified ctx ptr disallowed` error ever again no matter the surrounding code or optimization settings.
 
 ## Common subexpression elimination
 
 It is worth mentioning that compiler will eliminate redundant calls to `xdp_data_end()` (aka common subexpression elimination).
 If the result is still lingering in a register somewhere, there's no need to recompute it.
-It is quite handy when logic is split into smaler inlined functions.
+It is quite handy when logic is split into smaller inlined functions.
 There's no need to cache `data_end` pointer explicitly.
 We can simply pass  `ctx` around and obtain  `data_end` pointer when needed without any performance impact.
 
@@ -235,7 +233,7 @@ This is why we have a dummy memory input `"m"(*ctx)`.
 ## Wrapping up
 
 Today we descended down to ebpf bytecode level to understand `dereference of modified ctx ptr disallowed` error.
-The troublesome instruction sequence is ocasionally introduced by optimising compiler in complex ebpf programs.
+The troublesome instruction sequence is occasionally introduced by optimizing compiler in complex ebpf programs.
 
 We developed a robust workaround by leveraging inline assembly, a lesser known compiler feature.
 We explored potential performance implications and concluded that there are none compared to  straightforward `ctx->data_end`.
