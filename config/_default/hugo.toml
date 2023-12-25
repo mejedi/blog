@@ -21,5 +21,5 @@ weight = 1
 
 [[menu.main]]
 name = "About"
-url = "/Posts"
+url = "/about/"
 weight = 2
