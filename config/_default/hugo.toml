@@ -15,6 +15,11 @@ title = 'mejedi.dev'
     noClasses = false
 
 [[menu.main]]
+name = "Rss"
+url = "/index.xml"
+weight = 1
+
+[[menu.main]]
 name = "About"
 url = "/Posts"
-weight = 1
+weight = 2
