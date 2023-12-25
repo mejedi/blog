@@ -29,7 +29,7 @@ fingerprintAlgorithm = "sha256"
   showCopyright = true
   showThemeAttribution = false
   showAppearanceSwitcher = true
-  showScrollToTop = false
+  showScrollToTop = true
 
 [homepage]
   layout = "custom" # valid options: page, profile, custom
@@ -57,7 +57,7 @@ fingerprintAlgorithm = "sha256"
 
 [list]
   showBreadcrumbs = false
-  showSummary = false
+  showSummary = true
   showTableOfContents = false
   showTaxonomies = false
   groupByYear = true
