@@ -21,10 +21,11 @@ The program below discards all incoming IPv4 traffic:
 SEC("xdp")
 int drop_ipv4(struct xdp_md *ctx) {
 
+    void *data_end = (void *)(long)ctx->data_end;
     struct ethhdr *eth = (void *)(long)ctx->data;
 
     // Mandatory bounds check
-    if ((void *)(eth + 1) > (void *)(long)ctx->data_end) return XDP_DROP;
+    if ((void *)(eth + 1) > data_end) return XDP_DROP;
 
     // Drop all IPv4
     if (eth->h_proto == __bpf_htons(ETH_P_IP)) return XDP_DROP;
@@ -43,7 +44,7 @@ But no matter a program type, the pattern remains the same.
 The information a program might need is packed into a context structure, and the program receives a context pointer.
 For XDP, the context includes pointers to a packet buffer (`data` and `data_end`).
 The corresponding members are defined as `u32` for complicated reasons.
-Please ignore ugly typecasts for now.
+Please ignore awkward typecasts for now.
 
 We assume that `drop_ipv4` will attach to an Ethernet interface.
 Therefore, we can determine the protocol from link-layer header.
