@@ -10,6 +10,10 @@ code::after {
     content: "" !important;
 }
 
+.chroma {
+    background-color: rgba(var(--color-neutral-100), var(--tw-bg-opacity));
+}
+
 .dark .chroma {
     background-color: rgba(var(--color-neutral-900), var(--tw-bg-opacity));
 }
