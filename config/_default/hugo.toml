@@ -1,6 +1,7 @@
 baseURL = 'https://example.org/'
 languageCode = 'en-us'
 title = 'mejedi.dev'
+disableKinds = ['home']
 
 [module]
 [[module.imports]]

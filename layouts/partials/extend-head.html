@@ -17,7 +17,7 @@
 */ -}}
 {{- if os.Getenv "HUGO_LIVE_PREVIEW_SCRIPT" -}}
 <script>{{os.Getenv "HUGO_LIVE_PREVIEW_SCRIPT" | base64Decode | safeJS }}</script>
-{{- if eq .RelPermalink "/posts/" -}}
+{{- if eq .RelPermalink "/" -}}
 <script type="application/json">{"pageDirectory":[
 {{- range $i, $_ := .Sites -}}
     {{ if ne $i 0 }},{{ end -}}
